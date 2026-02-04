@@ -4,9 +4,10 @@ import InputLabel from '@/Components/InputLabel';
 import PrimaryButton from '@/Components/PrimaryButton';
 import TextInput from '@/Components/TextInput';
 import GuestLayout from '@/Layouts/GuestLayout';
-import { Head, Link, useForm } from '@inertiajs/react';
+import { Head, Link, useForm, usePage } from '@inertiajs/react';
 
 export default function Login({ status, canResetPassword }) {
+    const flash = usePage().props.flash || {};
     const { data, setData, post, processing, errors, reset } = useForm({
         email: '',
         password: '',
@@ -25,9 +26,21 @@ export default function Login({ status, canResetPassword }) {
         <GuestLayout>
             <Head title="Log in" />
 
+            <div className="mb-6 text-center">
+                <h1 className="text-2xl font-semibold text-gray-800">
+                    Aurora Media Tracking
+                </h1>
+                <p className="mt-1 text-sm text-gray-500">Sign in to your account</p>
+            </div>
+
             {status && (
                 <div className="mb-4 text-sm font-medium text-green-600">
                     {status}
+                </div>
+            )}
+            {flash.info && (
+                <div className="mb-4 rounded-md bg-blue-50 p-3 text-sm text-blue-700">
+                    {flash.info}
                 </div>
             )}
 
@@ -80,7 +93,7 @@ export default function Login({ status, canResetPassword }) {
                     </label>
                 </div>
 
-                <div className="mt-4 flex items-center justify-end">
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     {canResetPassword && (
                         <Link
                             href={route('password.request')}
@@ -89,8 +102,7 @@ export default function Login({ status, canResetPassword }) {
                             Forgot your password?
                         </Link>
                     )}
-
-                    <PrimaryButton className="ms-4" disabled={processing}>
+                    <PrimaryButton className="sm:ms-4" disabled={processing}>
                         Log in
                     </PrimaryButton>
                 </div>

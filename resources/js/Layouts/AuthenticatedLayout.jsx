@@ -30,6 +30,21 @@ export default function AuthenticatedLayout({ header, children }) {
                                 >
                                     Dashboard
                                 </NavLink>
+                                {user?.is_admin ? (
+                                    <NavLink
+                                        href={route('admin.customers.index')}
+                                        active={route().current('admin.customers.*')}
+                                    >
+                                        Customers
+                                    </NavLink>
+                                ) : (
+                                    <NavLink
+                                        href={route('customer-portal.index')}
+                                        active={route().current('customer-portal.index')}
+                                    >
+                                        My Projects
+                                    </NavLink>
+                                )}
                             </div>
                         </div>
 
@@ -134,6 +149,21 @@ export default function AuthenticatedLayout({ header, children }) {
                         >
                             Dashboard
                         </ResponsiveNavLink>
+                        {user?.is_admin ? (
+                            <ResponsiveNavLink
+                                href={route('admin.customers.index')}
+                                active={route().current('admin.customers.*')}
+                            >
+                                Customers
+                            </ResponsiveNavLink>
+                        ) : (
+                            <ResponsiveNavLink
+                                href={route('customer-portal.index')}
+                                active={route().current('customer-portal.index')}
+                            >
+                                My Projects
+                            </ResponsiveNavLink>
+                        )}
                     </div>
 
                     <div className="border-t border-gray-200 pb-1 pt-4">

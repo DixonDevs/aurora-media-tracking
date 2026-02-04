@@ -1,5 +1,30 @@
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
+## Aurora Media Tracking
+
+A media company product tracker built with Laravel Breeze (Inertia + React). Owners can add customers, update project statuses (Scheduled Shoot Date → Shooting → Editing → Ready To View), and add a media link. Customers receive **email and SMS (Twilio)** when status or media link is updated, and can log in to view status and access their media link.
+
+### Features
+
+- **Admin (owner):** Add/edit customers, update project status, set media link (photos/videos URL). Invite customers to the portal (sends password reset email).
+- **Customer:** Log in to see project status and media link. Notifications via email and optional Twilio SMS.
+- **Status workflow:** Scheduled Shoot Date → Shooting → Editing → Ready To View.
+
+### Local setup
+
+1. Copy `.env.example` to `.env`, run `php artisan key:generate`, and configure your database (default SQLite).
+2. Run `php artisan migrate`.
+3. (Optional) **Twilio:** Add `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, and `TWILIO_SMS_FROM` to `.env` for SMS. If not set, only email notifications are sent.
+4. **Mail (invite / password reset emails):** By default `MAIL_MAILER=log` so no email is delivered—see **`docs/MAIL.md`** to view emails in the log, use [Mailpit](https://github.com/axllent/mailpit) for a local inbox, or configure real SMTP.
+5. **Queue:** Notifications are queued. Run `php artisan queue:work` or set `QUEUE_CONNECTION=sync` in `.env` to send immediately.
+6. Run `npm install && npm run dev` and `php artisan serve`. Register the first user — they become the admin. Then add customers and update statuses.
+
+### Hosting (AWS)
+
+Use a standard Laravel stack (e.g. Laravel Forge, Elastic Beanstalk, or EC2 + RDS). Set `APP_URL` and configure Twilio, mail, and queue (e.g. SQS or Redis) in production.
+
+---
+
 <p align="center">
 <a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
