@@ -33,9 +33,11 @@ export default function Dashboard({
                                     </p>
                                 </div>
                             </div>
-
                             <div className="mb-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                                <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                                <Link
+                                    href={route('admin.customers.index')}
+                                    className="block overflow-hidden bg-white shadow-sm sm:rounded-lg transition hover:ring-2 hover:ring-indigo-500 hover:ring-offset-2"
+                                >
                                     <div className="p-6">
                                         <p className="text-sm font-medium text-gray-500">
                                             Total customers
@@ -43,14 +45,11 @@ export default function Dashboard({
                                         <p className="mt-2 text-3xl font-semibold text-gray-900">
                                             {customersCount}
                                         </p>
-                                        <Link
-                                            href={route('admin.customers.index')}
-                                            className="mt-2 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-800"
-                                        >
+                                        <span className="mt-2 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-800">
                                             View all →
-                                        </Link>
+                                        </span>
                                     </div>
-                                </div>
+                                </Link>
                                 <Link
                                     href={route('admin.projects.index')}
                                     className="block overflow-hidden bg-white shadow-sm sm:rounded-lg transition hover:ring-2 hover:ring-indigo-500 hover:ring-offset-2"
