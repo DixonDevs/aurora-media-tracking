@@ -38,8 +38,13 @@ class ProjectStatusUpdatedNotification extends Notification implements ShouldQue
         if ($this->project->scheduled_shoot_date) {
             $message->line('Scheduled shoot date: ' . $this->project->scheduled_shoot_date->format('F j, Y'));
         }
-        if ($this->mediaLinkAdded && $this->project->media_link) {
-            $message->action('View your photos/videos', $this->project->media_link);
+        $links = $this->project->media_links ?? [];
+        if ($this->mediaLinkAdded && count($links) > 0) {
+            foreach ($links as $url) {
+                if (is_string($url) && $url !== '') {
+                    $message->line('View your photos/videos: ' . $url);
+                }
+            }
         }
         $message->line('You can also log in to your account to check status anytime.');
         return $message;
@@ -49,8 +54,12 @@ class ProjectStatusUpdatedNotification extends Notification implements ShouldQue
     {
         $statusLabel = $this->project->status_label;
         $body = "Your project status is now: {$statusLabel}.";
-        if ($this->mediaLinkAdded && $this->project->media_link) {
-            $body .= ' View your media: ' . $this->project->media_link;
+        $links = $this->project->media_links ?? [];
+        if ($this->mediaLinkAdded && count($links) > 0) {
+            $body .= ' View your media: ' . (is_string($links[0]) ? $links[0] : '');
+            if (count($links) > 1) {
+                $body .= ' (+' . (count($links) - 1) . ' more - check your email)';
+            }
         }
         $to = $notifiable->routeNotificationFor('twilio_sms') ?? $this->project->customer->phone;
         return [

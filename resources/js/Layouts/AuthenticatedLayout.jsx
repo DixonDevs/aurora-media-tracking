@@ -12,7 +12,7 @@ export default function AuthenticatedLayout({ header, children }) {
         useState(false);
 
     return (
-        <div className="min-h-screen bg-gray-100">
+        <div className="flex min-h-screen flex-col bg-gray-100">
             <nav className="border-b border-gray-100 bg-white">
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex h-16 justify-between">
@@ -81,6 +81,20 @@ export default function AuthenticatedLayout({ header, children }) {
                                         >
                                             Profile
                                         </Dropdown.Link>
+                                        {user?.is_admin && (
+                                            <>
+                                                <Dropdown.Link
+                                                    href={route('admin.statuses.index')}
+                                                >
+                                                    Project statuses
+                                                </Dropdown.Link>
+                                                <Dropdown.Link
+                                                    href={route('admin.project-types.index')}
+                                                >
+                                                    Project types
+                                                </Dropdown.Link>
+                                            </>
+                                        )}
                                         <Dropdown.Link
                                             href={route('logout')}
                                             method="post"
@@ -180,6 +194,16 @@ export default function AuthenticatedLayout({ header, children }) {
                             <ResponsiveNavLink href={route('profile.edit')}>
                                 Profile
                             </ResponsiveNavLink>
+                            {user?.is_admin && (
+                                <>
+                                    <ResponsiveNavLink href={route('admin.statuses.index')}>
+                                        Project statuses
+                                    </ResponsiveNavLink>
+                                    <ResponsiveNavLink href={route('admin.project-types.index')}>
+                                        Project types
+                                    </ResponsiveNavLink>
+                                </>
+                            )}
                             <ResponsiveNavLink
                                 method="post"
                                 href={route('logout')}
@@ -200,7 +224,7 @@ export default function AuthenticatedLayout({ header, children }) {
                 </header>
             )}
 
-            <main>{children}</main>
+            <main className="flex min-h-0 flex-1 flex-col">{children}</main>
         </div>
     );
 }

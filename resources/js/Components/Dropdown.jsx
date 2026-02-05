@@ -4,7 +4,7 @@ import { createContext, useContext, useState } from 'react';
 
 const DropDownContext = createContext();
 
-const Dropdown = ({ children }) => {
+const Dropdown = ({ children, className = '' }) => {
     const [open, setOpen] = useState(false);
 
     const toggleOpen = () => {
@@ -13,7 +13,7 @@ const Dropdown = ({ children }) => {
 
     return (
         <DropDownContext.Provider value={{ open, setOpen, toggleOpen }}>
-            <div className="relative">{children}</div>
+            <div className={`relative ${className}`.trim()}>{children}</div>
         </DropDownContext.Provider>
     );
 };

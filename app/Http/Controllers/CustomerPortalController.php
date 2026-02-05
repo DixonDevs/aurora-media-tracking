@@ -15,13 +15,15 @@ class CustomerPortalController extends Controller
             return Inertia::render('CustomerPortal/NoAccess');
         }
 
-        $projects = $customer->projects()->latest()->get()->map(fn($p) => [
+        $projects = $customer->projects()->orderBy('completed_at')->latest('updated_at')->get()->map(fn($p) => [
             'id' => $p->id,
             'name' => $p->name,
             'status' => $p->status,
             'status_label' => $p->status_label,
             'scheduled_shoot_date' => $p->scheduled_shoot_date?->format('F j, Y'),
-            'media_link' => $p->media_link,
+            'media_links' => $p->media_links ?? [],
+            'completed_at' => $p->completed_at?->format('F j, Y'),
+            'is_archived' => $p->isArchived(),
         ]);
 
         return Inertia::render('CustomerPortal/Index', [

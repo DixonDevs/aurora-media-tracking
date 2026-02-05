@@ -1,7 +1,14 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link } from '@inertiajs/react';
 
-export default function Dashboard({ isAdmin, customersCount, recentCustomers, customerName, projects }) {
+export default function Dashboard({
+    isAdmin,
+    customersCount,
+    activeProjectsCount,
+    recentCustomers,
+    customerName,
+    projects,
+}) {
     return (
         <AuthenticatedLayout
             header={
@@ -44,6 +51,22 @@ export default function Dashboard({ isAdmin, customersCount, recentCustomers, cu
                                         </Link>
                                     </div>
                                 </div>
+                                <Link
+                                    href={route('admin.projects.index')}
+                                    className="block overflow-hidden bg-white shadow-sm sm:rounded-lg transition hover:ring-2 hover:ring-indigo-500 hover:ring-offset-2"
+                                >
+                                    <div className="p-6">
+                                        <p className="text-sm font-medium text-gray-500">
+                                            Active projects
+                                        </p>
+                                        <p className="mt-2 text-3xl font-semibold text-gray-900">
+                                            {activeProjectsCount ?? 0}
+                                        </p>
+                                        <span className="mt-2 inline-block text-sm font-medium text-indigo-600 hover:text-indigo-800">
+                                            View active projects →
+                                        </span>
+                                    </div>
+                                </Link>
                             </div>
 
                             <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
@@ -76,19 +99,14 @@ export default function Dashboard({ isAdmin, customersCount, recentCustomers, cu
                                             <li key={customer.id}>
                                                 <Link
                                                     href={route('admin.customers.show', customer.id)}
-                                                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
+                                                    className="block px-4 py-3 hover:bg-gray-50"
                                                 >
-                                                    <div>
-                                                        <p className="font-medium text-gray-900">
-                                                            {customer.name}
-                                                        </p>
-                                                        <p className="text-sm text-gray-500">
-                                                            {customer.email}
-                                                        </p>
-                                                    </div>
-                                                    <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-                                                        {customer.status}
-                                                    </span>
+                                                    <p className="font-medium text-gray-900">
+                                                        {customer.name}
+                                                    </p>
+                                                    <p className="text-sm text-gray-500">
+                                                        {customer.email}
+                                                    </p>
                                                 </Link>
                                             </li>
                                         ))
@@ -141,10 +159,10 @@ export default function Dashboard({ isAdmin, customersCount, recentCustomers, cu
                                                         Scheduled: {project.scheduled_shoot_date}
                                                     </p>
                                                 )}
-                                                {project.media_link && (
+                                                {(project.media_links?.length ?? 0) > 0 && (
                                                     <p className="pt-2">
                                                         <a
-                                                            href={project.media_link}
+                                                            href={project.media_links[0]}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="text-indigo-600 hover:text-indigo-800 underline"

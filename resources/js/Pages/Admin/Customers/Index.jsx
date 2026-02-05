@@ -1,9 +1,16 @@
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout';
 import { Head, Link, usePage } from '@inertiajs/react';
+import { Fragment, useState } from 'react';
 
 export default function Index({ customers }) {
     const { props } = usePage();
     const flash = props.flash || {};
+    const [expandedId, setExpandedId] = useState(null);
+
+    const toggleExpanded = (customerId) => {
+        setExpandedId((prev) => (prev === customerId ? null : customerId));
+    };
+
     return (
         <AuthenticatedLayout
             header={
@@ -35,7 +42,7 @@ export default function Index({ customers }) {
                         </div>
                     )}
 
-                    <div className="overflow-hidden bg-white shadow-sm sm:rounded-lg">
+                    <div className="overflow-x-auto bg-white shadow-sm sm:rounded-lg">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
@@ -46,10 +53,7 @@ export default function Index({ customers }) {
                                         Email
                                     </th>
                                     <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                        Status
-                                    </th>
-                                    <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                                        Portal
+                                        Projects
                                     </th>
                                     <th className="px-4 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
                                         Actions
@@ -59,47 +63,90 @@ export default function Index({ customers }) {
                             <tbody className="divide-y divide-gray-200 bg-white">
                                 {customers.length === 0 ? (
                                     <tr>
-                                        <td colSpan={5} className="px-4 py-8 text-center text-gray-500">
+                                        <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
                                             No customers yet. Add your first customer to get started.
                                         </td>
                                     </tr>
                                 ) : (
                                     customers.map((customer) => (
-                                        <tr key={customer.id}>
-                                            <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
-                                                {customer.name}
-                                            </td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                                                {customer.email}
-                                            </td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
-                                                {customer.latest_project?.status_label ?? '—'}
-                                            </td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-sm">
-                                                {customer.has_portal_access ? (
-                                                    <span className="rounded-full bg-green-100 px-2 py-0.5 text-green-800">
-                                                        Yes
+                                        <Fragment key={customer.id}>
+                                            <tr className={expandedId === customer.id ? 'bg-gray-50/50' : ''}>
+                                                <td className="whitespace-nowrap px-4 py-3 text-sm font-medium text-gray-900">
+                                                    {customer.name}
+                                                </td>
+                                                <td className="whitespace-nowrap px-4 py-3 text-sm text-gray-500">
+                                                    {customer.email}
+                                                </td>
+                                                <td className="px-4 py-3 text-sm text-gray-500">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="font-medium text-gray-900">
+                                                            {customer.projects_count} {customer.projects_count === 1 ? 'project' : 'projects'}
+                                                        </span>
+                                                        {customer.projects?.length > 0 ? (
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => toggleExpanded(customer.id)}
+                                                                className="inline-flex items-center gap-1 text-indigo-600 hover:text-indigo-800 text-xs font-medium"
+                                                            >
+                                                                {expandedId === customer.id ? 'Hide' : 'Status & schedule'}
+                                                                <svg
+                                                                    className={`h-4 w-4 transition-transform ${expandedId === customer.id ? 'rotate-180' : ''}`}
+                                                                    fill="none"
+                                                                    stroke="currentColor"
+                                                                    viewBox="0 0 24 24"
+                                                                >
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                                                </svg>
+                                                            </button>
+                                                        ) : (
+                                                            <span className="text-gray-400 text-xs">—</span>
+                                                        )}
+                                                    </div>
+                                                </td>
+                                                <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
+                                                    <span className="inline-flex flex-wrap gap-2 justify-end">
+                                                        <Link
+                                                            href={route('admin.customers.show', customer.id)}
+                                                            className="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                                                        >
+                                                            View Projects
+                                                        </Link>
+                                                        <Link
+                                                            href={route('admin.customers.projects.store', customer.id)}
+                                                            method="post"
+                                                            as="button"
+                                                            className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700"
+                                                        >
+                                                            Add Project
+                                                        </Link>
                                                     </span>
-                                                ) : (
-                                                    <span className="text-gray-400">No</span>
-                                                )}
-                                            </td>
-                                            <td className="whitespace-nowrap px-4 py-3 text-right text-sm">
-                                                <Link
-                                                    href={route('admin.customers.show', customer.id)}
-                                                    className="text-indigo-600 hover:text-indigo-900"
-                                                >
-                                                    View
-                                                </Link>
-                                                {' · '}
-                                                <Link
-                                                    href={route('admin.customers.edit', customer.id)}
-                                                    className="text-indigo-600 hover:text-indigo-900"
-                                                >
-                                                    Edit
-                                                </Link>
-                                            </td>
-                                        </tr>
+                                                </td>
+                                            </tr>
+                                            {expandedId === customer.id && customer.projects?.length > 0 && (
+                                                <tr key={`${customer.id}-expanded`}>
+                                                    <td colSpan={4} className="bg-gray-50 px-4 py-3">
+                                                        <div className="rounded-lg border border-gray-200 bg-white shadow-sm overflow-hidden">
+                                                            <div className="border-b border-gray-100 bg-gray-50/80 px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                                                                Status & schedule
+                                                            </div>
+                                                            <ul className="divide-y divide-gray-100">
+                                                                {customer.projects.map((project) => (
+                                                                    <li key={project.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
+                                                                        <span className="font-medium text-gray-900 truncate" title={project.name}>
+                                                                            {project.name}
+                                                                        </span>
+                                                                        <span className="flex gap-4 text-gray-500 shrink-0">
+                                                                            <span>{project.status_label}</span>
+                                                                            <span>{project.scheduled_shoot_date ?? '—'}</span>
+                                                                        </span>
+                                                                    </li>
+                                                                ))}
+                                                            </ul>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </Fragment>
                                     ))
                                 )}
                             </tbody>

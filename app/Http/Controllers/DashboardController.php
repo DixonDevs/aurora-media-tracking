@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\Project;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -15,20 +16,15 @@ class DashboardController extends Controller
 
         if ($user->isAdmin()) {
             $customersCount = Customer::count();
-            $recentCustomers = Customer::with(['projects' => fn($q) => $q->latest()->limit(1)])
-                ->latest()
+            $activeProjectsCount = Project::active()->count();
+            $recentCustomers = Customer::latest()
                 ->limit(5)
-                ->get()
-                ->map(fn($c) => [
-                    'id' => $c->id,
-                    'name' => $c->name,
-                    'email' => $c->email,
-                    'status' => $c->projects->first()?->status_label ?? '—',
-                ]);
+                ->get(['id', 'name', 'email']);
 
             return Inertia::render('Dashboard', [
                 'isAdmin' => true,
                 'customersCount' => $customersCount,
+                'activeProjectsCount' => $activeProjectsCount,
                 'recentCustomers' => $recentCustomers,
             ]);
         }
@@ -41,7 +37,7 @@ class DashboardController extends Controller
                 'status' => $p->status,
                 'status_label' => $p->status_label,
                 'scheduled_shoot_date' => $p->scheduled_shoot_date?->format('F j, Y'),
-                'media_link' => $p->media_link,
+                'media_links' => $p->media_links ?? [],
             ])
             : [];
 

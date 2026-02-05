@@ -17,8 +17,12 @@ class CustomerController extends Controller
 {
     public function index(): Response
     {
-        $customers = Customer::with(['user', 'projects' => fn($q) => $q->latest()->limit(1)])
+        $customers = Customer::with([
+            'user',
+            'projects' => fn($q) => $q->latest()->select('id', 'customer_id', 'name', 'status', 'scheduled_shoot_date'),
+        ])
             ->withCount('projects')
+            ->withCount(['projects as active_projects_count' => fn($q) => $q->whereNull('completed_at')])
             ->latest()
             ->get()
             ->map(fn(Customer $c) => [
@@ -28,13 +32,14 @@ class CustomerController extends Controller
                 'phone' => $c->phone,
                 'has_portal_access' => (bool) $c->user_id,
                 'projects_count' => $c->projects_count,
-                'latest_project' => $c->projects->first() ? [
-                    'id' => $c->projects->first()->id,
-                    'status' => $c->projects->first()->status,
-                    'status_label' => $c->projects->first()->status_label,
-                    'scheduled_shoot_date' => $c->projects->first()->scheduled_shoot_date?->format('Y-m-d'),
-                    'media_link' => $c->projects->first()->media_link,
-                ] : null,
+                'active_projects_count' => $c->active_projects_count,
+                'archived_projects_count' => $c->projects_count - $c->active_projects_count,
+                'projects' => $c->projects->map(fn($p) => [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'status_label' => $p->status_label,
+                    'scheduled_shoot_date' => $p->scheduled_shoot_date?->format('M j, Y'),
+                ])->values()->all(),
             ]);
 
         return Inertia::render('Admin/Customers/Index', [
@@ -53,12 +58,14 @@ class CustomerController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email',
             'phone' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:1000',
+            'job' => 'nullable|string|max:255',
             'send_invite' => 'boolean',
         ]);
 
         $sendInvite = $request->boolean('send_invite');
         $customer = Customer::create(collect($validated)->except('send_invite')->all());
-        $customer->projects()->create(['name' => 'Project']);
+        $customer->projects()->create(['name' => 'New project']);
 
         $message = 'Customer added successfully.';
         if ($sendInvite) {
@@ -70,10 +77,29 @@ class CustomerController extends Controller
             ->with('success', $message);
     }
 
+    public function storeProject(Request $request, Customer $customer): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => 'nullable|string|max:255',
+        ]);
+
+        $project = $customer->projects()->create([
+            'name' => $validated['name'] ?? 'New project',
+        ]);
+
+        return redirect()->route('admin.projects.show', $project)
+            ->with('success', 'New project created. Name it below and save.');
+    }
+
     public function show(Customer $customer): Response
     {
-        $customer->load(['projects' => fn($q) => $q->latest()]);
+        $customer->load([
+            'projects' => fn($q) => $q->orderBy('completed_at')->latest('updated_at'),
+        ]);
         $customer->projects->each(fn($p) => $p->append('status_label'));
+
+        $activeCount = $customer->projects->filter(fn($p) => ! $p->isArchived())->count();
+        $archivedCount = $customer->projects->count() - $activeCount;
 
         return Inertia::render('Admin/Customers/Show', [
             'customer' => [
@@ -81,18 +107,49 @@ class CustomerController extends Controller
                 'name' => $customer->name,
                 'email' => $customer->email,
                 'phone' => $customer->phone,
+                'address' => $customer->address,
+                'job' => $customer->job,
                 'has_portal_access' => (bool) $customer->user_id,
+                'projects_count' => $customer->projects->count(),
+                'active_projects_count' => $activeCount,
+                'archived_projects_count' => $archivedCount,
                 'projects' => $customer->projects->map(fn($p) => [
                     'id' => $p->id,
                     'name' => $p->name,
                     'status' => $p->status,
                     'status_label' => $p->status_label,
                     'scheduled_shoot_date' => $p->scheduled_shoot_date?->format('Y-m-d'),
-                    'media_link' => $p->media_link,
+                    'media_links' => $p->media_links ?? [],
                     'notes' => $p->notes,
+                    'completed_at' => $p->completed_at?->toIso8601String(),
+                    'is_archived' => $p->isArchived(),
                 ]),
             ],
-            'statuses' => \App\Models\Project::statuses(),
+        ]);
+    }
+
+    public function archivedProjects(Customer $customer): Response
+    {
+        $archived = $customer->projects()
+            ->archived()
+            ->orderByDesc('completed_at')
+            ->get();
+
+        $archived->each(fn($p) => $p->append('status_label'));
+
+        return Inertia::render('Admin/Customers/ArchivedProjects', [
+            'customer' => [
+                'id' => $customer->id,
+                'name' => $customer->name,
+            ],
+            'archivedProjects' => $archived->map(fn($p) => [
+                'id' => $p->id,
+                'name' => $p->name,
+                'status_label' => $p->status_label,
+                'scheduled_shoot_date' => $p->scheduled_shoot_date?->format('Y-m-d'),
+                'media_links' => $p->media_links ?? [],
+                'completed_at' => $p->completed_at?->toIso8601String(),
+            ]),
         ]);
     }
 
@@ -104,6 +161,8 @@ class CustomerController extends Controller
                 'name' => $customer->name,
                 'email' => $customer->email,
                 'phone' => $customer->phone,
+                'address' => $customer->address,
+                'job' => $customer->job,
             ],
         ]);
     }
@@ -114,9 +173,18 @@ class CustomerController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email',
             'phone' => 'nullable|string|max:50',
+            'address' => 'nullable|string|max:1000',
+            'job' => 'nullable|string|max:255',
         ]);
 
-        $customer->update($validated);
+        $customer->fill($validated)->save();
+
+        if ($customer->user_id) {
+            $customer->user->update([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+            ]);
+        }
 
         return redirect()->route('admin.customers.show', $customer)
             ->with('success', 'Customer updated.');
@@ -126,7 +194,7 @@ class CustomerController extends Controller
     {
         $customer->delete();
         return redirect()->route('admin.customers.index')
-            ->with('success', 'Customer removed.');
+            ->with('success', 'Customer deleted.');
     }
 
     public function invite(Customer $customer): RedirectResponse
@@ -158,18 +226,41 @@ class CustomerController extends Controller
         return back()->with('info', 'Unable to send reset link. They can use "Forgot password" on the login page.');
     }
 
+    public function revokePortalAccess(Customer $customer): RedirectResponse
+    {
+        if (! $customer->user_id) {
+            return back()->with('info', 'Customer does not have portal access.');
+        }
+
+        $user = $customer->user;
+        $customer->update(['user_id' => null]);
+        $user->delete();
+
+        return back()->with('success', 'Portal access revoked. They can no longer log in. You can invite them again anytime.');
+    }
+
     /**
      * Create user for customer and send password reset email. Returns success message or null.
+     * Restores a soft-deleted user if one exists for this email.
      */
     private function createPortalUserAndSendInvite(Customer $customer): ?string
     {
-        $user = User::firstOrCreate(
-            ['email' => $customer->email],
-            [
+        $user = User::withTrashed()->where('email', $customer->email)->first();
+
+        if ($user) {
+            $user->restore();
+            $user->update([
                 'name' => $customer->name,
                 'password' => Hash::make(Str::random(32)),
-            ]
-        );
+            ]);
+        } else {
+            $user = User::create([
+                'name' => $customer->name,
+                'email' => $customer->email,
+                'password' => Hash::make(Str::random(32)),
+            ]);
+        }
+
         $customer->update(['user_id' => $user->id]);
         Password::sendResetLink(['email' => $user->email]);
         return null;

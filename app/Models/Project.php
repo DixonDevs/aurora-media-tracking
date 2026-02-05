@@ -2,27 +2,25 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Project extends Model
 {
-    use HasFactory;
+    use HasFactory, SoftDeletes;
 
-    public const STATUS_SCHEDULED_SHOOT_DATE = 'scheduled_shoot_date';
-    public const STATUS_SHOOTING = 'shooting';
-    public const STATUS_EDITING = 'editing';
+    /** Key used for "ready to view" – triggers media link notification when set. */
     public const STATUS_READY_TO_VIEW = 'ready_to_view';
 
+    /**
+     * Visible statuses for forms/UI (key => label). Use ProjectStatus::keyLabelMap() for admin/all.
+     */
     public static function statuses(): array
     {
-        return [
-            self::STATUS_SCHEDULED_SHOOT_DATE => 'Scheduled Shoot Date',
-            self::STATUS_SHOOTING => 'Shooting',
-            self::STATUS_EDITING => 'Editing',
-            self::STATUS_READY_TO_VIEW => 'Ready To View',
-        ];
+        return ProjectStatus::keyLabelMap(visibleOnly: true);
     }
 
     protected $fillable = [
@@ -30,15 +28,42 @@ class Project extends Model
         'name',
         'status',
         'scheduled_shoot_date',
-        'media_link',
+        'media_links',
         'notes',
+        'project_types',
+        'completed_at',
     ];
 
     protected function casts(): array
     {
         return [
             'scheduled_shoot_date' => 'date',
+            'completed_at' => 'datetime',
+            'media_links' => 'array',
+            'project_types' => 'array',
         ];
+    }
+
+    public function getMediaLinkAttribute(): ?string
+    {
+        $links = $this->media_links ?? [];
+
+        return is_array($links) && count($links) > 0 ? $links[0] : null;
+    }
+
+    public function scopeActive(Builder $query): Builder
+    {
+        return $query->whereNull('completed_at');
+    }
+
+    public function scopeArchived(Builder $query): Builder
+    {
+        return $query->whereNotNull('completed_at');
+    }
+
+    public function isArchived(): bool
+    {
+        return $this->completed_at !== null;
     }
 
     public function customer(): BelongsTo
@@ -48,6 +73,8 @@ class Project extends Model
 
     public function getStatusLabelAttribute(): string
     {
-        return self::statuses()[$this->status] ?? $this->status;
+        $all = ProjectStatus::keyLabelMap(visibleOnly: false);
+
+        return $all[$this->status] ?? $this->status;
     }
 }
